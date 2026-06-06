@@ -1,0 +1,45 @@
+# ── Environment & Secrets ──────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Python / Backend ───────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+*.egg
+.venv/
+env/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+dist/
+build/
+
+# ── Node / Frontend ────────────────────────────────────────────────────────────
+node_modules/
+tiffin_tracker_app/dist/
+tiffin_tracker_app/dist-ssr/
+
+# ── OS ─────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Editor ─────────────────────────────────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.sw?
+
+# ── Claude Code ────────────────────────────────────────────────────────────────
+.claude/
+
+# ── Logs ───────────────────────────────────────────────────────────────────────
+*.log
+logs/
