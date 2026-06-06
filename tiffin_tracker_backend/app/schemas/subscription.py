@@ -9,6 +9,10 @@ class SubscriptionCreate(BaseModel):
     start_date: Optional[date] = None
 
 
+class SubscriptionUpdate(BaseModel):
+    plan_id: int
+
+
 class SubscriptionResponse(BaseModel):
     id: int
     subscriber_id: int

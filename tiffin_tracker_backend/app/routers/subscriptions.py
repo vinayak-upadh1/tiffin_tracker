@@ -10,7 +10,7 @@ from app.models.subscriber import Subscriber
 from app.models.plan import Plan
 from app.models.subscription import Subscription
 from app.models.payment import Payment
-from app.schemas.subscription import SubscriptionCreate, SubscriptionResponse
+from app.schemas.subscription import SubscriptionCreate, SubscriptionUpdate, SubscriptionResponse
 
 router = APIRouter()
 
@@ -78,6 +78,60 @@ async def create_subscription(
             Payment(
                 operator_id=operator.id,
                 subscriber_id=data.subscriber_id,
+                subscription_id=subscription.id,
+                billing_month=billing_month,
+                amount_due=plan.price_per_month,
+            )
+        )
+
+    await db.commit()
+    await db.refresh(subscription)
+    return subscription
+
+
+@router.patch("/{subscription_id}", response_model=SubscriptionResponse)
+async def update_subscription(
+    subscription_id: int,
+    data: SubscriptionUpdate,
+    db: AsyncSession = Depends(get_db),
+    operator: Operator = Depends(get_current_operator),
+):
+    result = await db.execute(
+        select(Subscription).where(
+            Subscription.id == subscription_id,
+            Subscription.operator_id == operator.id,
+        )
+    )
+    subscription = result.scalar_one_or_none()
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+
+    plan_result = await db.execute(
+        select(Plan).where(Plan.id == data.plan_id, Plan.operator_id == operator.id)
+    )
+    plan = plan_result.scalar_one_or_none()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    subscription.plan_id = data.plan_id
+
+    billing_month = date.today().replace(day=1)
+    payment_result = await db.execute(
+        select(Payment).where(
+            Payment.subscriber_id == subscription.subscriber_id,
+            Payment.billing_month == billing_month,
+            Payment.operator_id == operator.id,
+        )
+    )
+    payment = payment_result.scalar_one_or_none()
+    if payment:
+        payment.amount_due = plan.price_per_month
+        payment.subscription_id = subscription.id
+    else:
+        db.add(
+            Payment(
+                operator_id=operator.id,
+                subscriber_id=subscription.subscriber_id,
                 subscription_id=subscription.id,
                 billing_month=billing_month,
                 amount_due=plan.price_per_month,

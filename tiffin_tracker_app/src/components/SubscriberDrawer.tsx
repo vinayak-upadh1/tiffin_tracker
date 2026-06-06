@@ -42,8 +42,18 @@ export default function SubscriberDrawer({ open, onClose, subscriber, onSuccess 
   const { data: plans = [] } = useQuery({
     queryKey: ["plans"],
     queryFn: plansApi.list,
-    enabled: open && !isEditing,
+    enabled: open,
   });
+
+  const { data: subscriptions = [] } = useQuery({
+    queryKey: ["subscriptions"],
+    queryFn: subscriptionsApi.list,
+    enabled: open && isEditing,
+  });
+
+  const currentSubscription = isEditing
+    ? subscriptions.find((s) => s.subscriber_id === subscriber?.id)
+    : undefined;
 
   useEffect(() => {
     if (open) {
@@ -55,11 +65,12 @@ export default function SubscriberDrawer({ open, onClose, subscriber, onSuccess 
               address: subscriber.address ?? "",
               notes: subscriber.notes ?? "",
               status: subscriber.status,
+              plan_id: currentSubscription ? String(currentSubscription.plan_id) : "",
             }
           : { name: "", phone: "", address: "", notes: "", status: "active" as const, plan_id: "" }
       );
     }
-  }, [open, subscriber, reset]);
+  }, [open, subscriber, reset, currentSubscription]);
 
   const mutation = useMutation({
     mutationFn: async (data: FormData) => {
@@ -71,7 +82,18 @@ export default function SubscriberDrawer({ open, onClose, subscriber, onSuccess 
         status: data.status,
       };
       if (isEditing) {
-        return subscribersApi.update(subscriber.id, payload);
+        const updated = await subscribersApi.update(subscriber.id, payload);
+        if (data.plan_id && currentSubscription) {
+          if (Number(data.plan_id) !== currentSubscription.plan_id) {
+            await subscriptionsApi.update(currentSubscription.id, Number(data.plan_id));
+          }
+        } else if (data.plan_id && !currentSubscription) {
+          await subscriptionsApi.create({
+            subscriber_id: subscriber.id,
+            plan_id: Number(data.plan_id),
+          });
+        }
+        return updated;
       }
       const newSubscriber = await subscribersApi.create(payload);
       if (data.plan_id) {
@@ -160,10 +182,10 @@ export default function SubscriberDrawer({ open, onClose, subscriber, onSuccess 
             </Field>
           )}
 
-          {!isEditing && activePlans.length > 0 && (
-            <Field label="Assign Plan (optional)" error={undefined}>
+          {activePlans.length > 0 && (
+            <Field label="Plan (optional)" error={undefined}>
               <select {...register("plan_id")} className={inputClass(false)}>
-                <option value="">— No plan yet —</option>
+                <option value="">— No plan —</option>
                 {activePlans.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name} — ₹{Number(p.price_per_month).toLocaleString("en-IN")}/mo
@@ -171,7 +193,9 @@ export default function SubscriberDrawer({ open, onClose, subscriber, onSuccess 
                 ))}
               </select>
               <p className="text-xs text-gray-400 mt-1">
-                Assigning a plan creates a payment record for this month automatically.
+                {isEditing
+                  ? "Changing the plan updates this month's payment record."
+                  : "Assigning a plan creates a payment record for this month automatically."}
               </p>
             </Field>
           )}

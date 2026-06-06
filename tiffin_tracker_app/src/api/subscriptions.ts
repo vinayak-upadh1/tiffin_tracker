@@ -21,4 +21,6 @@ export const subscriptionsApi = {
     api.get("/subscriptions").then((r) => r.data),
   create: (data: SubscriptionPayload): Promise<Subscription> =>
     api.post("/subscriptions", data).then((r) => r.data),
+  update: (id: number, plan_id: number): Promise<Subscription> =>
+    api.patch(`/subscriptions/${id}`, { plan_id }).then((r) => r.data),
 };
