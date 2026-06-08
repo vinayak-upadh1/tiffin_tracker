@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Date, DateTime, Enum, ForeignKey
+from sqlalchemy import Column, Integer, Date, DateTime, Time, Enum, ForeignKey
 from sqlalchemy.sql import func
 from app.models.base import Base
 
@@ -15,5 +15,7 @@ class Subscription(Base):
     status = Column(Enum("active", "paused", "cancelled"), nullable=False, server_default="active")
     pause_start = Column(Date, nullable=True)
     pause_end = Column(Date, nullable=True)
+    billing_type = Column(Enum("prepaid", "postpaid"), nullable=False, server_default="prepaid")
+    delivery_time = Column(Time, nullable=True)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())

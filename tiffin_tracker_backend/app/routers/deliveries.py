@@ -12,7 +12,7 @@ from app.models.subscriber import Subscriber
 from app.models.subscription import Subscription
 from app.models.plan import Plan
 from app.models.delivery import Delivery
-from app.schemas.delivery import BulkDeliveryRequest, SubscriberDeliveryEntry
+from app.schemas.delivery import BulkDeliveryRequest, SubscriberDeliveryEntry, MEAL_ORDER
 
 router = APIRouter()
 
@@ -52,22 +52,26 @@ async def list_deliveries(
 
     entries = []
     for subscription, subscriber, plan in rows:
-        meal_types = ["lunch", "dinner"] if plan.meal_type == "both" else [plan.meal_type]
-        for meal_type in meal_types:
-            entries.append(
-                SubscriberDeliveryEntry(
-                    subscriber_id=subscriber.id,
-                    subscriber_name=subscriber.name,
-                    subscriber_phone=subscriber.phone,
-                    subscription_id=subscription.id,
-                    plan_id=plan.id,
-                    plan_name=plan.name,
-                    meal_type=meal_type,
-                    status=existing.get((subscriber.id, meal_type)),
-                )
+        entries.append(
+            SubscriberDeliveryEntry(
+                subscriber_id=subscriber.id,
+                subscriber_name=subscriber.name,
+                subscriber_phone=subscriber.phone,
+                subscription_id=subscription.id,
+                plan_id=plan.id,
+                plan_name=plan.name,
+                meal_type=plan.meal_type,
+                delivery_time=subscription.delivery_time,
+                status=existing.get((subscriber.id, plan.meal_type)),
             )
+        )
 
-    return sorted(entries, key=lambda e: e.subscriber_name)
+    def sort_key(e: SubscriberDeliveryEntry):
+        time_key = (0, e.delivery_time) if e.delivery_time else (1, None)
+        meal_key = MEAL_ORDER.get(e.meal_type, 99)
+        return (time_key[0], time_key[1] or "", meal_key, e.subscriber_name)
+
+    return sorted(entries, key=sort_key)
 
 
 @router.post("/bulk", status_code=200)
