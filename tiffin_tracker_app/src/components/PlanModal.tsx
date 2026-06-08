@@ -6,12 +6,25 @@ import { useMutation } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { plansApi, type Plan, type PlanPayload } from "../api/plans";
 
-const schema = z.object({
-  name: z.string().min(1, "Plan name is required"),
-  meal_type: z.enum(["lunch", "dinner", "both"]),
-  price_per_month: z.number().positive("Price must be greater than 0"),
-  deliveries_per_month: z.number().int().min(1).max(31, "Max 31 deliveries per month"),
-});
+const schema = z
+  .object({
+    name: z.string().min(1, "Plan name is required"),
+    meal_type: z.enum(["breakfast", "lunch", "snacks", "dinner"]),
+    price_per_month: z.number().optional(),
+    price_per_meal: z.number().optional(),
+    deliveries_per_month: z.number().int().min(1).max(31, "Max 31 deliveries per month"),
+  })
+  .superRefine((d, ctx) => {
+    const hasMonth = d.price_per_month && d.price_per_month > 0;
+    const hasMeal = d.price_per_meal && d.price_per_meal > 0;
+    if (!hasMonth && !hasMeal) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["price_per_month"],
+        message: "Set at least one price (prepaid or postpaid)",
+      });
+    }
+  });
 
 type FormData = z.infer<typeof schema>;
 
@@ -37,10 +50,17 @@ export default function PlanModal({ open, onClose, plan, onSuccess }: Props) {
           ? {
               name: plan.name,
               meal_type: plan.meal_type,
-              price_per_month: plan.price_per_month,
+              price_per_month: plan.price_per_month ?? undefined,
+              price_per_meal: plan.price_per_meal ?? undefined,
               deliveries_per_month: plan.deliveries_per_month,
             }
-          : { name: "", meal_type: "lunch" as const, price_per_month: 0, deliveries_per_month: 26 }
+          : {
+              name: "",
+              meal_type: "lunch" as const,
+              price_per_month: undefined,
+              price_per_meal: undefined,
+              deliveries_per_month: 26,
+            }
       );
     }
   }, [open, plan, reset]);
@@ -50,7 +70,8 @@ export default function PlanModal({ open, onClose, plan, onSuccess }: Props) {
       const payload: PlanPayload = {
         name: data.name,
         meal_type: data.meal_type,
-        price_per_month: data.price_per_month,
+        price_per_month: data.price_per_month || null,
+        price_per_meal: data.price_per_meal || null,
         deliveries_per_month: data.deliveries_per_month,
       };
       return plan ? plansApi.update(plan.id, payload) : plansApi.create(payload);
@@ -85,28 +106,18 @@ export default function PlanModal({ open, onClose, plan, onSuccess }: Props) {
             <input
               {...register("name")}
               className={inputClass(!!errors.name)}
-              placeholder="Lunch Only, Lunch + Dinner..."
+              placeholder="Lunch Only, Dinner Plan..."
             />
           </Field>
 
-          <Field label="Meal Type *" error={errors.meal_type?.message}>
-            <select {...register("meal_type")} className={inputClass(!!errors.meal_type)}>
-              <option value="lunch">Lunch</option>
-              <option value="dinner">Dinner</option>
-              <option value="both">Lunch + Dinner</option>
-            </select>
-          </Field>
-
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Price / Month (₹) *" error={errors.price_per_month?.message}>
-              <input
-                {...register("price_per_month", { valueAsNumber: true })}
-                type="number"
-                step="0.01"
-                className={inputClass(!!errors.price_per_month)}
-                placeholder="2200"
-                inputMode="decimal"
-              />
+            <Field label="Meal Type *" error={errors.meal_type?.message}>
+              <select {...register("meal_type")} className={inputClass(!!errors.meal_type)}>
+                <option value="breakfast">Breakfast</option>
+                <option value="lunch">Lunch</option>
+                <option value="snacks">Snacks</option>
+                <option value="dinner">Dinner</option>
+              </select>
             </Field>
 
             <Field label="Deliveries / Month *" error={errors.deliveries_per_month?.message}>
@@ -118,6 +129,38 @@ export default function PlanModal({ open, onClose, plan, onSuccess }: Props) {
                 inputMode="numeric"
               />
             </Field>
+          </div>
+
+          {/* Pricing — operators set whichever applies; billing type is chosen per subscriber */}
+          <div className="rounded-lg border border-gray-100 bg-gray-50/60 p-3 space-y-3">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+              Pricing — set what applies
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Prepaid: ₹ / month" error={errors.price_per_month?.message}>
+                <input
+                  {...register("price_per_month", { valueAsNumber: true })}
+                  type="number"
+                  step="0.01"
+                  className={inputClass(!!errors.price_per_month)}
+                  placeholder="2200"
+                  inputMode="decimal"
+                />
+              </Field>
+              <Field label="Postpaid: ₹ / meal" error={errors.price_per_meal?.message}>
+                <input
+                  {...register("price_per_meal", { valueAsNumber: true })}
+                  type="number"
+                  step="0.01"
+                  className={inputClass(!!errors.price_per_meal)}
+                  placeholder="80"
+                  inputMode="decimal"
+                />
+              </Field>
+            </div>
+            <p className="text-xs text-gray-400">
+              Billing type (prepaid / postpaid) is set per subscriber, not per plan.
+            </p>
           </div>
 
           <div className="flex gap-3 pt-2">

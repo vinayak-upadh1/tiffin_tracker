@@ -8,6 +8,20 @@ function currentMonth() {
   return format(new Date(), "yyyy-MM");
 }
 
+const MEAL_LABELS: Record<string, string> = {
+  breakfast: "breakfast",
+  lunch: "lunch",
+  snacks: "snacks",
+  dinner: "dinner",
+};
+
+function formatBreakdown(breakdown: Record<string, number>): string {
+  return Object.entries(breakdown)
+    .filter(([, count]) => count > 0)
+    .map(([meal, count]) => `${count} ${MEAL_LABELS[meal] ?? meal}`)
+    .join(", ");
+}
+
 export default function PaymentsPage() {
   const [month, setMonth] = useState(currentMonth);
   const [markingPayment, setMarkingPayment] = useState<Payment | null>(null);
@@ -86,17 +100,13 @@ export default function PaymentsPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/60">
-                  <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">
-                    Subscriber
-                  </th>
+                  <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Subscriber</th>
                   <th className="text-right text-xs font-medium text-gray-500 px-4 py-3">Due</th>
                   <th className="text-right text-xs font-medium text-gray-500 px-4 py-3 hidden sm:table-cell">
                     Paid
                   </th>
                   <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Status</th>
-                  <th className="text-right text-xs font-medium text-gray-500 px-4 py-3">
-                    Actions
-                  </th>
+                  <th className="text-right text-xs font-medium text-gray-500 px-4 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -108,8 +118,16 @@ export default function PaymentsPage() {
                     }`}
                   >
                     <td className="px-4 py-3">
-                      <p className="text-sm font-medium text-gray-900">{p.subscriber_name}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-medium text-gray-900">{p.subscriber_name}</p>
+                        <BillingTypeBadge type={p.billing_type} />
+                      </div>
                       <p className="text-xs text-gray-400">{p.subscriber_phone}</p>
+                      {p.billing_type === "postpaid" && p.meal_breakdown && (
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {formatBreakdown(p.meal_breakdown) || "No meals delivered"}
+                        </p>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right text-sm text-gray-700 font-medium">
                       ₹{Number(p.amount_due).toLocaleString("en-IN")}
@@ -164,6 +182,18 @@ export default function PaymentsPage() {
   );
 }
 
+function BillingTypeBadge({ type }: { type: string }) {
+  const styles =
+    type === "postpaid"
+      ? "bg-orange-100 text-orange-700"
+      : "bg-blue-100 text-blue-700";
+  return (
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${styles}`}>
+      {type === "postpaid" ? "Postpaid" : "Prepaid"}
+    </span>
+  );
+}
+
 function PaymentStatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
     paid: "bg-green-100 text-green-700",
@@ -208,9 +238,15 @@ function MarkPaidModal({
       <div className="absolute inset-0 bg-black/20" onClick={onClose} />
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
         <h2 className="font-semibold text-gray-900 mb-1">Mark Payment Received</h2>
-        <p className="text-sm text-gray-500 mb-5">
+        <p className="text-sm text-gray-500 mb-1">
           {payment.subscriber_name} · {billingDisplay}
         </p>
+        {payment.billing_type === "postpaid" && payment.meal_breakdown && (
+          <p className="text-xs text-gray-400 mb-4">{formatBreakdown(payment.meal_breakdown)}</p>
+        )}
+        {payment.billing_type === "prepaid" && (
+          <p className="text-xs text-gray-400 mb-4" />
+        )}
 
         {error && (
           <div className="mb-4 bg-red-50 text-red-700 text-sm px-3 py-2 rounded-lg border border-red-200">
@@ -231,9 +267,7 @@ function MarkPaidModal({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Payment Method
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
             <select
               value={method}
               onChange={(e) => setMethod(e.target.value as MarkPaidPayload["payment_method"])}
@@ -246,9 +280,7 @@ function MarkPaidModal({
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Notes (optional)
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
             <input
               type="text"
               value={notes}

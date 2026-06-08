@@ -5,15 +5,17 @@ import { plansApi, type Plan } from "../api/plans";
 import PlanModal from "../components/PlanModal";
 
 const MEAL_LABEL: Record<string, string> = {
+  breakfast: "Breakfast",
   lunch: "Lunch",
+  snacks: "Snacks",
   dinner: "Dinner",
-  both: "Lunch + Dinner",
 };
 
 const MEAL_COLOR: Record<string, string> = {
+  breakfast: "bg-yellow-50 text-yellow-700 border-yellow-200",
   lunch: "bg-orange-50 text-orange-700 border-orange-200",
+  snacks: "bg-lime-50 text-lime-700 border-lime-200",
   dinner: "bg-blue-50 text-blue-700 border-blue-200",
-  both: "bg-purple-50 text-purple-700 border-purple-200",
 };
 
 export default function PlansPage() {
@@ -112,11 +114,20 @@ export default function PlansPage() {
               </div>
 
               <div className="flex items-end justify-between mt-4">
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">
-                    ₹{Number(plan.price_per_month).toLocaleString("en-IN")}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-0.5">
+                <div className="space-y-0.5">
+                  {plan.price_per_month != null && (
+                    <p className="text-sm font-semibold text-blue-700">
+                      ₹{Number(plan.price_per_month).toLocaleString("en-IN")}
+                      <span className="text-xs font-normal text-gray-400 ml-1">/ month</span>
+                    </p>
+                  )}
+                  {plan.price_per_meal != null && (
+                    <p className="text-sm font-semibold text-orange-600">
+                      ₹{Number(plan.price_per_meal).toLocaleString("en-IN")}
+                      <span className="text-xs font-normal text-gray-400 ml-1">/ meal</span>
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-400">
                     {plan.deliveries_per_month} deliveries / month
                   </p>
                 </div>

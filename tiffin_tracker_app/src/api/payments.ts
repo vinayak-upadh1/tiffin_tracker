@@ -14,6 +14,8 @@ export interface Payment {
   notes: string | null;
   subscriber_name: string;
   subscriber_phone: string;
+  billing_type: "prepaid" | "postpaid";
+  meal_breakdown: Record<string, number> | null;
 }
 
 export interface MarkPaidPayload {
