@@ -11,8 +11,8 @@ class Delivery(Base):
     subscriber_id = Column(Integer, ForeignKey("subscribers.id"), nullable=False)
     subscription_id = Column(Integer, ForeignKey("subscriptions.id"), nullable=False)
     delivery_date = Column(Date, nullable=False)
-    meal_type = Column(Enum("lunch", "dinner"), nullable=False)
-    status = Column(Enum("delivered", "skipped", "paused"), nullable=False, server_default="delivered")
+    meal_type = Column(Enum("breakfast", "lunch", "snacks", "dinner"), nullable=False)
+    status = Column(Enum("pending", "delivered", "skipped", "paused"), nullable=False, server_default="pending")
     notes = Column(String(255), nullable=True)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
 

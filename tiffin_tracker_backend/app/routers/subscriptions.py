@@ -61,6 +61,8 @@ async def create_subscription(
         plan_id=data.plan_id,
         operator_id=operator.id,
         start_date=data.start_date or date.today(),
+        billing_type=data.billing_type,
+        delivery_time=data.delivery_time,
     )
     db.add(subscription)
     await db.flush()
@@ -74,13 +76,14 @@ async def create_subscription(
         )
     )
     if not existing.scalar_one_or_none():
+        amount_due = plan.price_per_month if data.billing_type == "prepaid" else 0
         db.add(
             Payment(
                 operator_id=operator.id,
                 subscriber_id=data.subscriber_id,
                 subscription_id=subscription.id,
                 billing_month=billing_month,
-                amount_due=plan.price_per_month,
+                amount_due=amount_due,
             )
         )
 
@@ -124,8 +127,9 @@ async def update_subscription(
         )
     )
     payment = payment_result.scalar_one_or_none()
+    amount_due = plan.price_per_month if subscription.billing_type == "prepaid" else 0
     if payment:
-        payment.amount_due = plan.price_per_month
+        payment.amount_due = amount_due
         payment.subscription_id = subscription.id
     else:
         db.add(
@@ -134,10 +138,31 @@ async def update_subscription(
                 subscriber_id=subscription.subscriber_id,
                 subscription_id=subscription.id,
                 billing_month=billing_month,
-                amount_due=plan.price_per_month,
+                amount_due=amount_due,
             )
         )
 
     await db.commit()
     await db.refresh(subscription)
     return subscription
+
+
+@router.delete("/{subscription_id}", status_code=204)
+async def cancel_subscription(
+    subscription_id: int,
+    db: AsyncSession = Depends(get_db),
+    operator: Operator = Depends(get_current_operator),
+):
+    result = await db.execute(
+        select(Subscription).where(
+            Subscription.id == subscription_id,
+            Subscription.operator_id == operator.id,
+        )
+    )
+    subscription = result.scalar_one_or_none()
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+
+    subscription.status = "cancelled"
+    subscription.end_date = date.today()
+    await db.commit()

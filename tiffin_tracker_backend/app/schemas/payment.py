@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import date, datetime
-from typing import Optional, Literal
+from typing import Optional, Literal, Dict
 from decimal import Decimal
 
 
@@ -18,6 +18,8 @@ class PaymentDetail(BaseModel):
     notes: Optional[str]
     subscriber_name: str
     subscriber_phone: str
+    billing_type: str
+    meal_breakdown: Optional[Dict[str, int]] = None
 
 
 class MarkPaidRequest(BaseModel):
