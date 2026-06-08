@@ -11,7 +11,17 @@ class Settings(BaseSettings):
 
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_DAYS: int = 7
+    # Short-lived; access tokens expire quickly to limit damage if stolen
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+
+    # Refresh token / session settings
+    SESSION_LIFETIME_DAYS: int = 30          # sliding window — resets on each use
+    REFRESH_TOKEN_ROTATION_ENABLED: bool = True
+
+    # Cookie settings — set COOKIE_SECURE=false in local HTTP dev
+    COOKIE_SECURE: bool = True
+    COOKIE_SAMESITE: str = "lax"
+    COOKIE_DOMAIN: str = ""                  # blank for localhost; ".yourdomain.com" in prod
 
     GOOGLE_CLIENT_ID: str
     GOOGLE_CLIENT_SECRET: str

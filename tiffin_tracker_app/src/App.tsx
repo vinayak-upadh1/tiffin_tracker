@@ -1,12 +1,12 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./hooks/useAuth";
-import LoginPage from "./pages/LoginPage";
-import DashboardPage from "./pages/DashboardPage";
-import SubscribersPage from "./pages/SubscribersPage";
-import PlansPage from "./pages/PlansPage";
-import DeliveriesPage from "./pages/DeliveriesPage";
-import PaymentsPage from "./pages/PaymentsPage";
 import Layout from "./components/Layout";
+import DashboardPage from "./pages/DashboardPage";
+import DeliveriesPage from "./pages/DeliveriesPage";
+import LoginPage from "./pages/LoginPage";
+import PaymentsPage from "./pages/PaymentsPage";
+import PlansPage from "./pages/PlansPage";
+import SubscribersPage from "./pages/SubscribersPage";
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -14,7 +14,17 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isInitializing } = useAuth();
+
+  // Block rendering until we know whether the refresh-token cookie is valid.
+  // This prevents a flash of the login page on every page reload for logged-in users.
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <Routes>
