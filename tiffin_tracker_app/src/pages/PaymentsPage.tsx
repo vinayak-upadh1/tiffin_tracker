@@ -228,10 +228,9 @@ function MarkPaidModal({
   const [method, setMethod] = useState<MarkPaidPayload["payment_method"]>("gpay");
   const [notes, setNotes] = useState("");
 
-  const billingDisplay = format(
-    new Date(payment.billing_month + "-01T00:00:00"),
-    "MMMM yyyy"
-  );
+  const billingDisplay = payment.billing_month
+    ? format(new Date(payment.billing_month + "T00:00:00"), "MMMM yyyy")
+    : "—";
 
   return (
     <div className="fixed inset-0 z-30 flex items-center justify-center p-4">
