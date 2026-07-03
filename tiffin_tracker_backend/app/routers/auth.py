@@ -116,6 +116,7 @@ async def google_auth(
         )
         db.add(operator)
         await db.flush()  # populate operator.id before creating the session FK
+        await db.refresh(operator)  # re-read server defaults (is_active etc.) before accessing them
 
     if not operator.is_active:
         raise HTTPException(status_code=403, detail="Account is deactivated")
