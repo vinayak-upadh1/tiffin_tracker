@@ -5,7 +5,7 @@ import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { X, Plus, Trash2 } from "lucide-react";
 import { subscribersApi, type Subscriber, type SubscriberPayload } from "../api/subscribers";
-import { subscriptionsApi, type Subscription, type BillingType } from "../api/subscriptions";
+import { subscriptionsApi, type BillingType } from "../api/subscriptions";
 import { plansApi, type Plan } from "../api/plans";
 
 const schema = z.object({
