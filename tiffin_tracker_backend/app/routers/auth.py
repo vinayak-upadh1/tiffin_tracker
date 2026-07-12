@@ -42,14 +42,14 @@ def _set_refresh_cookie(response: Response, token: str) -> None:
         samesite=settings.COOKIE_SAMESITE,
         max_age=settings.SESSION_LIFETIME_DAYS * 24 * 60 * 60,
         domain=settings.COOKIE_DOMAIN or None,
-        path="/auth",
+        path="/",
     )
 
 
 def _clear_refresh_cookie(response: Response) -> None:
     response.delete_cookie(
         key="refresh_token",
-        path="/auth",
+        path="/",
         domain=settings.COOKIE_DOMAIN or None,
     )
 

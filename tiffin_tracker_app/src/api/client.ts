@@ -14,7 +14,7 @@ export function setAccessToken(token: string | null): void {
 // Axios instance
 // ---------------------------------------------------------------------------
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
+  baseURL: "/api",
   headers: { "Content-Type": "application/json" },
   // withCredentials sends the HttpOnly refresh_token cookie on every request.
   // The backend ignores it on all endpoints except /auth/refresh and /auth/logout.
