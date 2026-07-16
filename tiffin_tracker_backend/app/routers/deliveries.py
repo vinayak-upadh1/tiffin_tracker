@@ -1,7 +1,7 @@
 from datetime import date as date_type
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.dialects.mysql import insert as mysql_insert
@@ -80,6 +80,27 @@ async def bulk_mark_deliveries(
     db: AsyncSession = Depends(get_db),
     operator: Operator = Depends(get_current_operator),
 ):
+    if data.deliveries:
+        subscriber_ids = {item.subscriber_id for item in data.deliveries}
+        subscription_ids = {item.subscription_id for item in data.deliveries}
+        owned = (
+            await db.execute(
+                select(Subscription.id, Subscription.subscriber_id).where(
+                    Subscription.operator_id == operator.id,
+                    Subscription.id.in_(subscription_ids),
+                    Subscription.subscriber_id.in_(subscriber_ids),
+                )
+            )
+        ).all()
+        owned_pairs = {(sub_id, subscriber_id) for sub_id, subscriber_id in owned}
+
+        for item in data.deliveries:
+            if (item.subscription_id, item.subscriber_id) not in owned_pairs:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Subscription {item.subscription_id} not found",
+                )
+
     for item in data.deliveries:
         stmt = mysql_insert(Delivery).values(
             operator_id=operator.id,
